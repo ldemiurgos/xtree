@@ -1,7 +1,5 @@
 use std::{
-    cmp, env,
-    fs::{self, canonicalize},
-    io,
+    cmp, env, fs, io,
     path::{Path, PathBuf},
 };
 
@@ -25,6 +23,34 @@ struct Entry {
 }
 
 impl Entry {
+    fn from<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        let name = path
+            .as_ref()
+            .file_name()
+            .map(|n| n.display().to_string())
+            .ok_or(io::Error::new(
+                io::ErrorKind::InvalidFilename,
+                "I was unable to retrieve the filename",
+            ))?;
+        let mut kind = EntryKind::Regular;
+        let mut class = EntryClass::File;
+        let mut metadata = fs::metadata(&path)?;
+
+        if metadata.is_symlink() {
+            let target = fs::canonicalize(&path).ok();
+            if let Some(target_path) = target.as_ref() {
+                metadata = fs::metadata(target_path)?;
+            }
+            kind = EntryKind::SymLink { target };
+        }
+
+        if metadata.is_dir() {
+            class = EntryClass::Directory
+        }
+
+        Ok(Self { name, kind, class })
+    }
+
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         use EntryClass::*;
         match (&self.class, &other.class) {
@@ -43,47 +69,10 @@ struct Node {
 
 impl Node {
     fn from<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let mut entries = Vec::new();
-        for entry in fs::read_dir(&path)?.filter_map(|e| e.ok()) {
-            let Some(name) = entry.file_name().into_string().ok() else {
-                continue;
-            };
-
-            let metadata = fs::symlink_metadata(entry.path())?;
-            let kind = if metadata.is_symlink() {
-                let target = canonicalize(&path).ok();
-                EntryKind::SymLink { target }
-            } else {
-                EntryKind::Regular
-            };
-            let class = match &kind {
-                EntryKind::SymLink { target } => {
-                    if target
-                        .clone()
-                        .and_then(|target| fs::metadata(target).ok())
-                        .map(|m| m.is_dir())
-                        .unwrap_or(false)
-                    {
-                        EntryClass::Directory
-                    } else {
-                        EntryClass::File
-                    }
-                }
-
-                EntryKind::Regular => {
-                    if metadata.is_dir() {
-                        EntryClass::Directory
-                    } else {
-                        EntryClass::File
-                    }
-                }
-            };
-
-            let entry = Entry { name, kind, class };
-            println!("{entry:?}");
-            entries.push(entry);
-        }
-
+        let mut entries: Vec<Entry> = fs::read_dir(&path)?
+            .filter_map(|r| r.ok().map(|e| e.path()))
+            .filter_map(|path| Entry::from(path).ok())
+            .collect();
         entries.sort_by(Entry::cmp);
         Ok(Self { entries })
     }
