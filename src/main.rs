@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use termion::{color, style};
+
 #[derive(Debug)]
 enum EntryKind {
     Regular,
@@ -28,10 +30,8 @@ impl Entry {
             .as_ref()
             .file_name()
             .map(|n| n.display().to_string())
-            .ok_or(io::Error::new(
-                io::ErrorKind::InvalidFilename,
-                "I was unable to retrieve the filename",
-            ))?;
+            .unwrap_or("...".to_string());
+        let path = path.as_ref().to_path_buf();
         let mut kind = EntryKind::Regular;
         let mut class = EntryClass::File;
         let mut metadata = fs::metadata(&path)?;
@@ -76,17 +76,23 @@ impl Node {
         entries.sort_by(Entry::cmp);
         Ok(Self { entries })
     }
-
-    fn list_names_from_entries(&self) -> Vec<String> {
-        self.entries.iter().map(|e| e.name.clone()).collect()
-    }
 }
 
 fn main() -> io::Result<()> {
     let path = env::current_dir()?;
     let current_node = Node::from(path)?;
-    for filename in current_node.list_names_from_entries() {
-        println!("{filename}");
+    for entry in current_node.entries.iter() {
+        match &entry.class {
+            EntryClass::Directory => println!(
+                "{color}{style}{entry}{style_reset}{color_reset}",
+                color = color::Fg(color::Blue),
+                style = style::Bold,
+                color_reset = color::Fg(color::Reset),
+                style_reset = style::Reset,
+                entry = entry.name
+            ),
+            EntryClass::File => println!("{}", entry.name),
+        }
     }
     Ok(())
 }
