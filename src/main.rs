@@ -1,5 +1,7 @@
 use std::{
-    cmp, env, fs, io,
+    cmp, env,
+    fmt::Display,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -11,7 +13,7 @@ enum EntryKind {
     SymLink { target: Option<PathBuf> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum EntryClass {
     File,
     Directory,
@@ -63,6 +65,24 @@ impl Entry {
     }
 }
 
+impl Display for Entry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.class == EntryClass::Directory {
+            write!(
+                f,
+                "{color}{style}{entry}{style_reset}{color_reset}",
+                color = color::Fg(color::Blue),
+                style = style::Bold,
+                color_reset = color::Fg(color::Reset),
+                style_reset = style::Reset,
+                entry = self.name
+            )
+        } else {
+            write!(f, "{}", self.name)
+        }
+    }
+}
+
 struct Node {
     entries: Vec<Entry>,
 }
@@ -82,17 +102,7 @@ fn main() -> io::Result<()> {
     let path = env::current_dir()?;
     let current_node = Node::from(path)?;
     for entry in current_node.entries.iter() {
-        match &entry.class {
-            EntryClass::Directory => println!(
-                "{color}{style}{entry}{style_reset}{color_reset}",
-                color = color::Fg(color::Blue),
-                style = style::Bold,
-                color_reset = color::Fg(color::Reset),
-                style_reset = style::Reset,
-                entry = entry.name
-            ),
-            EntryClass::File => println!("{}", entry.name),
-        }
+        println!("{entry}");
     }
     Ok(())
 }
