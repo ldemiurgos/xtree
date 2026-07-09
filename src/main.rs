@@ -36,7 +36,7 @@ impl Entry {
         let path = path.as_ref().to_path_buf();
         let mut kind = EntryKind::Regular;
         let mut class = EntryClass::File;
-        let mut metadata = fs::metadata(&path)?;
+        let mut metadata = fs::symlink_metadata(&path)?;
 
         if metadata.is_symlink() {
             let target = fs::canonicalize(&path).ok();
