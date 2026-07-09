@@ -67,7 +67,30 @@ impl Entry {
 
 impl Display for Entry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.class == EntryClass::Directory {
+        if let EntryKind::SymLink { target } = &self.kind {
+            if let Some(target) = target {
+                write!(
+                    f,
+                    "{color}{style}{entry} -> {target} {style_reset}{color_reset}",
+                    color = color::Fg(color::Cyan),
+                    style = style::Italic,
+                    color_reset = color::Fg(color::Reset),
+                    style_reset = style::Reset,
+                    entry = self.name,
+                    target = target.display()
+                )
+            } else {
+                write!(
+                    f,
+                    "{color}{style}{entry} -> x {style_reset}{color_reset}",
+                    color = color::Fg(color::Cyan),
+                    style = style::Italic,
+                    color_reset = color::Fg(color::Reset),
+                    style_reset = style::Reset,
+                    entry = self.name
+                )
+            }
+        } else if self.class == EntryClass::Directory {
             write!(
                 f,
                 "{color}{style}{entry}{style_reset}{color_reset}",
