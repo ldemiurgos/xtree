@@ -144,12 +144,23 @@ impl Display for Model {
         if let Some(parent) = self.parent.as_ref() {
             buffer.push_str(format!("{}\n", parent.metadata).as_str());
             for (idx, parent_entry) in parent.entries.iter().enumerate() {
+                buffer.push_str(
+                    format!(
+                        " {}{parent_entry}\n",
+                        if idx == (parent.entries.len() - 1) {
+                            "└──"
+                        } else {
+                            "├──"
+                        }
+                    )
+                    .as_str(),
+                );
                 if parent_entry.name == self.current.metadata.name {
                     for (jdx, current_entry) in self.current.entries.iter().enumerate() {
                         buffer.push_str(if idx == (parent.entries.len() - 1) {
-                            " │ "
-                        } else {
                             "   "
+                        } else {
+                            " │ "
                         });
                         buffer.push_str(
                             format!(
@@ -164,17 +175,6 @@ impl Display for Model {
                         );
                     }
                 }
-                buffer.push_str(
-                    format!(
-                        " {}{parent_entry}\n",
-                        if idx == (parent.entries.len() - 1) {
-                            "└──"
-                        } else {
-                            "├──"
-                        }
-                    )
-                    .as_str(),
-                );
             }
         } else {
             buffer.push('/');
