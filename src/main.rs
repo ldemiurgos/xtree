@@ -107,25 +107,84 @@ impl Display for Entry {
 }
 
 struct Node {
+    metadata: Entry,
     entries: Vec<Entry>,
 }
 
 impl Node {
     fn from<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+        let metadata = Entry::from(&path)?;
         let mut entries: Vec<Entry> = fs::read_dir(&path)?
             .filter_map(|r| r.ok().map(|e| e.path()))
             .filter_map(|path| Entry::from(path).ok())
             .collect();
         entries.sort_by(Entry::cmp);
-        Ok(Self { entries })
+        Ok(Self { metadata, entries })
+    }
+}
+
+struct Model {
+    parent: Option<Node>,
+    current: Node,
+}
+
+impl Model {
+    fn initialize() -> io::Result<Self> {
+        let current_path = env::current_dir()?;
+        let parent_path = current_path.parent();
+        let current = Node::from(&current_path)?;
+        let parent = parent_path.and_then(|p| Node::from(p).ok());
+        Ok(Self { parent, current })
+    }
+}
+
+impl Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut buffer = String::new();
+        if let Some(parent) = self.parent.as_ref() {
+            buffer.push_str(format!("{}\n", parent.metadata).as_str());
+            for (idx, parent_entry) in parent.entries.iter().enumerate() {
+                if parent_entry.name == self.current.metadata.name {
+                    for (jdx, current_entry) in self.current.entries.iter().enumerate() {
+                        buffer.push_str(if idx == (parent.entries.len() - 1) {
+                            " │ "
+                        } else {
+                            "   "
+                        });
+                        buffer.push_str(
+                            format!(
+                                " {}{current_entry}\n",
+                                if jdx == (self.current.entries.len() - 1) {
+                                    "└──"
+                                } else {
+                                    "├──"
+                                }
+                            )
+                            .as_str(),
+                        );
+                    }
+                }
+                buffer.push_str(
+                    format!(
+                        " {}{parent_entry}\n",
+                        if idx == (parent.entries.len() - 1) {
+                            "└──"
+                        } else {
+                            "├──"
+                        }
+                    )
+                    .as_str(),
+                );
+            }
+        } else {
+            buffer.push('/');
+        }
+        write!(f, "{buffer}")
     }
 }
 
 fn main() -> io::Result<()> {
-    let path = env::current_dir()?;
-    let current_node = Node::from(path)?;
-    for entry in current_node.entries.iter() {
-        println!("{entry}");
-    }
+    let model = Model::initialize()?;
+    println!("{model}");
     Ok(())
 }
