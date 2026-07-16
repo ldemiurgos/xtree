@@ -71,7 +71,7 @@ impl Display for Entry {
             if let Some(target) = target {
                 write!(
                     f,
-                    "{color}{style}{entry} -> {target} {style_reset}{color_reset}",
+                    "{color}{style} {entry} -> {target} {style_reset}{color_reset}",
                     color = color::Fg(color::Cyan),
                     style = style::Italic,
                     color_reset = color::Fg(color::Reset),
@@ -82,7 +82,7 @@ impl Display for Entry {
             } else {
                 write!(
                     f,
-                    "{color}{style}{entry} -> x {style_reset}{color_reset}",
+                    "{color}{style} {entry} -> x {style_reset}{color_reset}",
                     color = color::Fg(color::Cyan),
                     style = style::Italic,
                     color_reset = color::Fg(color::Reset),
@@ -93,7 +93,7 @@ impl Display for Entry {
         } else if self.class == EntryClass::Directory {
             write!(
                 f,
-                "{color}{style}{entry}{style_reset}{color_reset}",
+                "{color}{style}  {entry}{style_reset}{color_reset}",
                 color = color::Fg(color::Blue),
                 style = style::Bold,
                 color_reset = color::Fg(color::Reset),
@@ -101,7 +101,7 @@ impl Display for Entry {
                 entry = self.name
             )
         } else {
-            write!(f, "{}", self.name)
+            write!(f, "  {}", self.name)
         }
     }
 }
