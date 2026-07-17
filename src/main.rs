@@ -67,42 +67,39 @@ impl Entry {
 
 impl Display for Entry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let EntryKind::SymLink { target } = &self.kind {
-            if let Some(target) = target {
-                write!(
-                    f,
-                    "{color}{style} {entry} -> {target} {style_reset}{color_reset}",
-                    color = color::Fg(color::Cyan),
-                    style = style::Italic,
-                    color_reset = color::Fg(color::Reset),
-                    style_reset = style::Reset,
-                    entry = self.name,
-                    target = target.display()
-                )
-            } else {
-                write!(
-                    f,
-                    "{color}{style} {entry} -> x {style_reset}{color_reset}",
-                    color = color::Fg(color::Cyan),
-                    style = style::Italic,
-                    color_reset = color::Fg(color::Reset),
-                    style_reset = style::Reset,
-                    entry = self.name
-                )
-            }
-        } else if self.class == EntryClass::Directory {
-            write!(
-                f,
-                "{color}{style}  {entry}{style_reset}{color_reset}",
-                color = color::Fg(color::Blue),
-                style = style::Bold,
-                color_reset = color::Fg(color::Reset),
-                style_reset = style::Reset,
-                entry = self.name
-            )
+        let reset_fg = color::Fg(color::Reset);
+        let reset_style = style::Reset;
+        let entry = &self.name;
+        let [color, style, icon, suffix] = if let EntryKind::SymLink { target } = &self.kind {
+            [
+                color::Fg(color::Cyan).to_string(),
+                style::Italic.to_string(),
+                "  ".to_string(),
+                match target {
+                    Some(target_path) => format!(" -> {}", target_path.display()),
+                    None => " -> x".to_string(),
+                },
+            ]
+        } else if let EntryClass::Directory = self.class {
+            [
+                color::Fg(color::Blue).to_string(),
+                style::Bold.to_string(),
+                "  ".to_string(),
+                "".to_string(),
+            ]
         } else {
-            write!(f, "  {}", self.name)
-        }
+            [
+                "".to_string(),
+                "".to_string(),
+                "  ".to_string(),
+                "".to_string(),
+            ]
+        };
+
+        write!(
+            f,
+            "{color}{style}{icon}{entry}{suffix}{reset_style}{reset_fg}"
+        )
     }
 }
 
